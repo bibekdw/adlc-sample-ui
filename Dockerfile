@@ -1,13 +1,19 @@
+FROM node:22-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
 FROM node:22-alpine AS builder
 WORKDIR /app
-COPY package.json ./
-RUN npm install --no-audit --no-fund
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
+
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app ./
+RUN npm ci --omit=dev --no-audit --no-fund
 RUN chown -R node:node /app
 USER node
 EXPOSE 3000
